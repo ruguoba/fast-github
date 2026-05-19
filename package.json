@@ -1,0 +1,33 @@
+{
+  "name": "fast-github",
+  "version": "1.0.0",
+  "description": "GitHub CDN 加速工具 - 自动查找最快 IP 并写入 hosts 文件",
+  "main": "index.js",
+  "bin": {
+    "github": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "github",
+    "cdn",
+    "hosts",
+    "dns",
+    "acceleration",
+    "加速"
+  ],
+  "author": "ruguoba",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruguoba/fast-github.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ruguoba/fast-github/issues"
+  },
+  "homepage": "https://github.com/ruguoba/fast-github#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
