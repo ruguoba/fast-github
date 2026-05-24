@@ -1,6 +1,6 @@
 {
   "name": "fast-github",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "GitHub CDN 加速工具 - 自动查找最快 IP 并写入 hosts 文件",
   "main": "index.js",
   "bin": {

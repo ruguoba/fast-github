@@ -233,6 +233,28 @@ function writeHostsFile(bestMap) {
   }
 }
 
+function cleanHostsFile() {
+  const hostsPath = getHostsPath();
+  try {
+    let content = fs.readFileSync(hostsPath, 'utf8');
+    const startMarker = '# === GitHub CDN Start ===';
+    if (content.indexOf(startMarker) === -1) {
+      console.log('ℹ️ 未找到 GitHub CDN 配置');
+      return;
+    }
+    const backupPath = backupHostsFile(hostsPath);
+    if (backupPath) {
+      console.log(`📋 已备份原文件到: ${backupPath}`);
+    }
+    content = cleanOldHosts(content);
+    fs.writeFileSync(hostsPath, content);
+    console.log('✅ 已清除 GitHub CDN 配置');
+    flushDNS();
+  } catch (err) {
+    console.error(`\n❌ 操作 ${hostsPath} 失败：${err.message}`);
+  }
+}
+
 function showHelp() {
   console.log(`
 fast-github - GitHub CDN 加速工具
@@ -240,6 +262,7 @@ fast-github - GitHub CDN 加速工具
 用法:
   github          自动查找最快 IP 并写入 hosts（需管理员权限）
   github go       只查找最快 IP，不写入
+  github clean     清除 hosts 中的 GitHub CDN 配置
   github --help   显示此帮助
   github --version 显示版本
 
@@ -271,6 +294,10 @@ async function main() {
   }
   if (arg === '--version' || arg === '-v') {
     showVersion();
+    return;
+  }
+  if (arg === 'clean') {
+    cleanHostsFile();
     return;
   }
   
