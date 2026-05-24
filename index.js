@@ -12,6 +12,7 @@ const dns = require('dns');
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // ==================== 配置 ====================
 const TARGET_DOMAINS = [
@@ -179,6 +180,29 @@ function backupHostsFile(hostsPath) {
   }
 }
 
+function flushDNS() {
+  const platform = process.platform;
+  let cmd, manualCmd;
+
+  if (platform === 'win32') {
+    cmd = 'ipconfig /flushdns';
+    manualCmd = 'ipconfig /flushdns';
+  } else if (platform === 'darwin') {
+    cmd = 'sudo dscacheutil -flushcache';
+    manualCmd = 'sudo dscacheutil -flushcache';
+  } else {
+    cmd = 'sudo systemd-resolve --flush-caches';
+    manualCmd = 'sudo systemd-resolve --flush-caches 或 sudo systemctl restart nscd';
+  }
+
+  try {
+    execSync(cmd, { stdio: 'ignore' });
+    console.log('✅ DNS缓存已刷新');
+  } catch (err) {
+    console.log(`⚠️ DNS缓存刷新失败，请手动执行: ${manualCmd}`);
+  }
+}
+
 function writeHostsFile(bestMap) {
   const hostsPath = getHostsPath();
   
@@ -201,10 +225,7 @@ function writeHostsFile(bestMap) {
     // 写入文件
     fs.writeFileSync(hostsPath, content + '\n' + newConfig + '\n');
     console.log(`\n✅ 已自动写入 ${hostsPath}`);
-    console.log('\n💡 可能需要刷新 DNS 缓存:');
-    console.log('   Windows: ipconfig /flushdns');
-    console.log('   macOS: sudo dscacheutil -flushcache');
-    console.log('   Linux: sudo systemd-resolve --flush-caches 或 sudo systemctl restart nscd');
+    flushDNS();
   } catch (err) {
     console.error(`\n❌ 写入 ${hostsPath} 失败：${err.message}`);
     console.log('\n请使用管理员权限运行（sudo / 管理员命令行），或手动复制以下内容：');
