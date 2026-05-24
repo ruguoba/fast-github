@@ -12,6 +12,7 @@ const dns = require('dns');
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 const { execSync } = require('child_process');
 
 // ==================== 配置 ====================
@@ -283,6 +284,62 @@ function showVersion() {
   console.log(`fast-github v${pkg.version}`);
 }
 
+// ==================== 代理检测 ====================
+function detectProxy() {
+  // 1. 检测环境变量
+  const envVars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy'];
+  for (const v of envVars) {
+    if (process.env[v]) {
+      return process.env[v];
+    }
+  }
+
+  // 2. 检测 Windows 注册表
+  if (process.platform === 'win32') {
+    try {
+      const regKey = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings';
+      const output = execSync(`reg query "${regKey}" /v ProxyEnable`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+      if (/ProxyEnable\s+REG_DWORD\s+0x1/i.test(output)) {
+        try {
+          const serverOutput = execSync(`reg query "${regKey}" /v ProxyServer`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+          const match = serverOutput.match(/ProxyServer\s+REG_SZ\s+(.+)/i);
+          if (match) {
+            const addr = match[1].trim();
+            if (addr) return addr;
+          }
+        } catch (_) {
+          // ProxyServer 不存在，忽略
+        }
+      }
+    } catch (_) {
+      // 注册表读取失败，忽略
+    }
+  }
+
+  return null;
+}
+
+function askToContinue() {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question('是否继续？(y/N): ', (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
+async function checkProxyAndConfirm() {
+  const proxy = detectProxy();
+  if (!proxy) return;
+  console.log(`⚠️ 检测到系统代理: ${proxy}`);
+  console.log('💡 使用代理时可能不需要 hosts 加速，如果加速无效请尝试关闭代理');
+  const cont = await askToContinue();
+  if (!cont) {
+    process.exit(0);
+  }
+}
+
 // ==================== 主流程 ====================
 async function main() {
   const arg = process.argv[2];
@@ -302,6 +359,8 @@ async function main() {
   }
   
   const mode = arg === 'go' ? 'go' : 'set';
+  
+  await checkProxyAndConfirm();
   
   console.log(`🔍 正在查找 ${TARGET_DOMAINS.length} 个域名的最快 IP...`);
   console.log('   这可能需要 10-30 秒，请耐心等待...\n');
